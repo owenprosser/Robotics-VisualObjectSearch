@@ -1,11 +1,22 @@
  #!/usr/bin/env python
 # BEGIN ALL
-import rospy, cv2, cv_bridge, numpy
+import rospy, cv2, cv_bridge, numpy, time
 from sensor_msgs.msg import Image, LaserScan
 from geometry_msgs.msg import Twist
 
 class Follower:
   distance = 0
+  #Red, Blue, Geen, Yellow
+  found = [False,False,False,False]
+  seeColour = False
+
+  boundaries = [
+    ([109, 109, 109], [ 73, 73, 73]),
+    ([ 0, 50, 50], [0, 255, 255])
+  ]
+
+# ([ 25, 100, 50], [255, 255, 255] ),
+
   def __init__(self):
     self.bridge = cv_bridge.CvBridge()
     cv2.namedWindow("window", 1)
@@ -22,28 +33,28 @@ class Follower:
   def image_callback(self, msg):
     image = self.bridge.imgmsg_to_cv2(msg,desired_encoding='bgr8')
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    lower_yellow = numpy.array([ 40,40, 40])
-    upper_yellow = numpy.array([70, 255, 255])
-    mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
 
-    res = cv2.bitwise_and(image, image, mask = mask)
     h, w, d = image.shape
 
-    M = cv2.moments(mask)
-    if M['m00'] > 0:
-      cx = int(M['m10']/M['m00'])
-      cy = int(M['m01']/M['m00'])
-      cv2.circle(image, (cx, cy), 20, (0,0,255), -1)
-      # BEGIN CONTROL
-      err = cx - w/2
-      self.twist.linear.x = 0.5
-      self.twist.angular.z = -float(err) / 100
-      if(Follower.distance < 2):
-	      self.twist.linear.x = 0
-      self.cmd_vel_pub.publish(self.twist)
-      # END CONTROL
+    for (lower, upper) in self.boundaries:
+      lower = numpy.array(lower, dtype= 'uint8')
+      upper = numpy.array(upper, dtype= 'uint8')
+      mask = cv2.inRange(hsv, lower, upper)
+      cv2.imshow('mask',mask)
+      M = cv2.moments(mask)
+      if M['m00'] > 0:
+        cx = int(M['m10']/M['m00'])
+        cy = int(M['m01']/M['m00'])
+        cv2.circle(image, (cx, cy), 20, (0,0,255), -1)
+        # BEGIN CONTROL
+        err = cx - w/2
+        self.twist.linear.x = 0.5
+        self.twist.angular.z = -float(err) / 100
+        if(Follower.distance < 1):
+          self.twist.linear.x = 0
+        self.cmd_vel_pub.publish(self.twist)
     
-    cv2.imshow("window", res)
+    print(self.seeColour)
     cv2.imshow("Original Image",image)
     cv2.waitKey(3)
 
@@ -52,7 +63,9 @@ class Follower:
     Follower.distance = numpy.nanmean(msg.ranges)
     print(str(Follower.distance))
 
-rospy.init_node('follower')
-follower = Follower()
-rospy.spin()
-# END ALL
+
+if __name__ == "__main__":
+  rospy.init_node('follower')
+  follower = Follower()
+  rospy.spin()
+  # END ALL

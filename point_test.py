@@ -16,8 +16,6 @@ from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import OccupancyGrid
 from nav_msgs.msg import Odometry
 
-
-
 class assignment_1:
     def __init__(self):
         rate = rospy.Rate(1)
@@ -56,8 +54,6 @@ class assignment_1:
         self.origin_y = map_data.info.origin.position.y
         self.origin_z = map_data.info.origin.position.z
 
-        print ("X: %1 Y:%2", self.origin_x, self.origin_y)
-
         now = rospy.get_rostime()
 
         mv_goal = PoseStamped()
@@ -73,7 +69,7 @@ class assignment_1:
 
         self.goal_pub.publish(mv_goal)
     def odom_callback(self, odom_data):
-        #print(odom_data.pose)
+        print(odom_data.pose)
         pass
     
     def point_cloud_callback(self, point_data):
@@ -84,12 +80,7 @@ class assignment_1:
 
 rospy.init_node('assignment_1')
 iv = assignment_1()
-while True:
-    count = 0
-    print(count)
-    rospy.spin()
-
-
+rospy.spin()
 
 #LASER SCAN OBSTACLE AVOIDANCE#
 
