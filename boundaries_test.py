@@ -40,7 +40,6 @@ class Follower:
 
     h, w, d = image.shape
     for (lower, upper) in self.boundaries:
-      print(self.count)
       if self.found[self.count] == True:
         continue
       lower = np.array(lower)
@@ -71,14 +70,7 @@ class Follower:
   def laser_callback(self, msg):
     Follower.distance = msg.ranges[10]
     Follower.distance = np.nanmean(msg.ranges)
-    if Follower.distance < 1:
-      Follower.turnRight()
-    #print(str(Follower.distance))
-
-  def turnRight():
-    print("turning Right")
-    self.twist.linear.x = 0.5
-    self.cmd_vel_pub.publish(self.twist)
+    print(str(Follower.distance))
 
 
 
