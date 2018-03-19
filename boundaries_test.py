@@ -1,25 +1,28 @@
  #!/usr/bin/env python
 # BEGIN ALL
-import rospy, cv2, cv_bridge, numpy, time
+import rospy, cv2, cv_bridge, time
+import numpy as np
 from sensor_msgs.msg import Image, LaserScan
 from geometry_msgs.msg import Twist
 
 class Follower:
   distance = 0
-  #Red, Blue, Geen, Yellow
+  count = 0
+  #        green, yellow, blue, red
   found = [False,False,False,False]
   seeColour = False
 
   boundaries = [
-    ([109, 109, 109], [ 73, 73, 73]),
-    ([ 0, 50, 50], [0, 255, 255])
+    ([ 30, 100, 0], [70, 255, 255]), #green
+    ([ 0, 100, 0], [5, 255, 255]), #yellow
+    ([ 25, 100, 25], [255, 255, 255]), #blue
+    ([ 0, 50, 50], [0, 255, 255]) #red
   ]
 
 # ([ 25, 100, 50], [255, 255, 255] ),
 
   def __init__(self):
     self.bridge = cv_bridge.CvBridge()
-    cv2.namedWindow("window", 1)
     #Setup Subscibers
     self.image_sub = rospy.Subscriber('/turtlebot/camera/rgb/image_raw', 
                                       Image, self.image_callback)
@@ -31,14 +34,18 @@ class Follower:
     self.twist = Twist()
 
   def image_callback(self, msg):
+    self.count = 0
     image = self.bridge.imgmsg_to_cv2(msg,desired_encoding='bgr8')
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
     h, w, d = image.shape
-
     for (lower, upper) in self.boundaries:
-      lower = numpy.array(lower, dtype= 'uint8')
-      upper = numpy.array(upper, dtype= 'uint8')
+      print(self.count)
+      if self.found[self.count] == True:
+        continue
+      lower = np.array(lower)
+      upper = np.array(upper)
+      #print(lower,upper)
       mask = cv2.inRange(hsv, lower, upper)
       cv2.imshow('mask',mask)
       M = cv2.moments(mask)
@@ -46,22 +53,33 @@ class Follower:
         cx = int(M['m10']/M['m00'])
         cy = int(M['m01']/M['m00'])
         cv2.circle(image, (cx, cy), 20, (0,0,255), -1)
+        #print(int(M['m10']))
         # BEGIN CONTROL
         err = cx - w/2
         self.twist.linear.x = 0.5
         self.twist.angular.z = -float(err) / 100
-        if(Follower.distance < 1):
+        if(M['m10'] > 4111219140):
           self.twist.linear.x = 0
+          self.found[self.count] = True
+        self.count = self.count + 1
         self.cmd_vel_pub.publish(self.twist)
     
-    print(self.seeColour)
+    #print(self.seeColour)
     cv2.imshow("Original Image",image)
     cv2.waitKey(3)
 
   def laser_callback(self, msg):
     Follower.distance = msg.ranges[10]
-    Follower.distance = numpy.nanmean(msg.ranges)
-    print(str(Follower.distance))
+    Follower.distance = np.nanmean(msg.ranges)
+    if Follower.distance < 1:
+      Follower.turnRight()
+    #print(str(Follower.distance))
+
+  def turnRight():
+    print("turning Right")
+    self.twist.linear.x = 0.5
+    self.cmd_vel_pub.publish(self.twist)
+
 
 
 if __name__ == "__main__":
