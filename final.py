@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+#                    OWEN PROSSER
+#           14514822@students.lincoln.ac.uk
+#                      14514822
+
 import rospy, cv2, cv_bridge, time, random
 import numpy as np
 from sensor_msgs.msg import Image, LaserScan, PointCloud2, LaserScan
@@ -116,8 +120,8 @@ class Follower:
         cv2.waitKey(3)
 
     def search(self):
-        if np.isnan(Follower.distance): # If the distance from the scanner is NaN type 
-            self.rotate()               # Rotates the robot away from wall
+        if np.isnan(Follower.distance):     # If the distance from the scanner is NaN type 
+            self.rotate()                   # Rotates the robot away from wall
         else:
             if Follower.distance < 1:       # If the robot is close to a wall
                 self.twist.linear.x = 0     # Stop moving forward
